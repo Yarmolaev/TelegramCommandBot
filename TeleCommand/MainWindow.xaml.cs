@@ -1,9 +1,9 @@
 ﻿using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
-using TeleCommand.Controller;
+using de.yarmolaev.TelegramCommandBot.Controller;
 
-namespace TeleCommand
+namespace de.yarmolaev.TelegramCommandBot
 {
     /// <summary>
     /// Interaktionslogik für MainWindow.xaml
@@ -28,7 +28,13 @@ namespace TeleCommand
         private void btn_start_Click(object sender, RoutedEventArgs e)
         {
             this.BotController = new BotController();
-            this.BotController.StartBot(tb_Username.Text, tb_Bot_ID.Text, tb_Output, this);
+            if(this.BotController.StartBot(tb_Username.Text, tb_Bot_ID.Text, tb_Output, this))
+            {
+                StartStopBotUI(true);
+            }else
+            {
+                StartStopBotUI(false);
+            }
 
             Properties.Settings.Default.Save();
 
@@ -41,7 +47,18 @@ namespace TeleCommand
         /// <param name="e"></param>
         private void btn_stop_Click(object sender, RoutedEventArgs e)
         {
-            BotController.StopBot();
+            if (BotController.StopBot())
+            {
+                StartStopBotUI(false);
+            }
+        }
+
+        private void StartStopBotUI(bool botStarted)
+        {
+            btn_start.IsEnabled = !botStarted;
+            btn_stop.IsEnabled = botStarted;
+            tb_Bot_ID.IsEnabled = !botStarted;
+            tb_Username.IsEnabled = !botStarted;
         }
 
 

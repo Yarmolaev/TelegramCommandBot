@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Drawing.Imaging;
 
-namespace TeleCommand.Controller
+namespace de.yarmolaev.TelegramCommandBot.Controller
 {
     class ScreenshotController
     {

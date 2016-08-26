@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace TeleCommand
+namespace de.yarmolaev.TelegramCommandBot
 {
     /// <summary>
     /// Interaktionslogik für Settings.xaml

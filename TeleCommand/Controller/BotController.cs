@@ -8,7 +8,7 @@ using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types;
 
-namespace TeleCommand.Controller
+namespace de.yarmolaev.TelegramCommandBot.Controller
 {
     class BotController
     {
@@ -29,7 +29,7 @@ namespace TeleCommand.Controller
         Brush BrushRequest = (Brush)converter.ConvertFromString("#FF006606");
         Brush BrushResponse = (Brush)converter.ConvertFromString("#FF00287F");
         Brush BrushInfo = (Brush)converter.ConvertFromString("#FFAAAAAA");
-        Brush BrushDanger = (Brush)converter.ConvertFromString("#FFCC9000");
+        Brush BrushWarning = (Brush)converter.ConvertFromString("#FFCC9000");
         Brush BrushError = (Brush)converter.ConvertFromString("#FF990000");
 
         //Messages
@@ -59,10 +59,7 @@ namespace TeleCommand.Controller
 
                 var me = Bot.GetMeAsync().Result;
 
-                /*btn_start.IsEnabled = false;
-                btn_stop.IsEnabled = true;
-                tb_Bot_ID.IsEnabled = false;
-                tb_Username.IsEnabled = false;*/
+
                 Username = username;
 
                 return true;
@@ -73,6 +70,8 @@ namespace TeleCommand.Controller
                 //AppendAsyncInfoLine("Failed to start bot!");
             }
         }
+
+        
 
         private void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs e)
         {
@@ -85,8 +84,10 @@ namespace TeleCommand.Controller
             {
                 Bot.StopReceiving();
                 Bot = null;
+                AppendAsyncInfoLine("Bot stopped successfully");
                 return true;
             }
+            AppendAsyncInfoLine("Error ocured while stopping bot.");
             return false;
         }
 
@@ -146,6 +147,11 @@ namespace TeleCommand.Controller
         private void AppendAsyncRequestLine(String text)
         {
             OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushRequest, TextAlignment.Right);
+        }
+
+        private void AppendAsyncWarningLine(String text)
+        {
+            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushWarning, TextAlignment.Left);
         }
 
         private void EvaluateMessage(string message)
