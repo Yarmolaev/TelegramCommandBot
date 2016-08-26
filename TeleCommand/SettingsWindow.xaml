@@ -1,0 +1,36 @@
+﻿<Window x:Class="TeleCommand.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TeleCommand"
+        mc:Ignorable="d"
+        Title="Settings" Height="438.96" Width="471.827">
+    <Grid Margin="0,0,0,5">
+        <ScrollViewer Margin="0,0,0,35">
+
+            <Grid>
+                <Label x:Name="lbl_secutiry" Content="Security" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
+                <CheckBox x:Name="chk_allow_to_run_cmd_commands" Content="Allow to run CMD commands" Margin="10,41,10,0" VerticalAlignment="Top" IsChecked="{Binding Source={StaticResource Settings}, Path=Default.AllowCmdRequest, Mode=TwoWay}"/>
+                <CheckBox x:Name="chk_allow_to_send_screenshots" Content="Allow to send Screenshots" Margin="10,61,10,0" VerticalAlignment="Top" IsChecked="{Binding Source={StaticResource Settings}, Path=Default.AllowScreenshotRequest, Mode=TwoWay}"/>
+                <CheckBox x:Name="chk_allow_to_send_documents" Content="Allow to send Documents" Margin="10,81,10,0" VerticalAlignment="Top" IsChecked="{Binding Source={StaticResource Settings}, Path=Default.AllowSendDocuments, Mode=TwoWay}"/>
+                <Separator Height="10" Margin="10,101,10,0" VerticalAlignment="Top"/>
+                <Label x:Name="lbl_cmd" Content="CMD" Margin="10,116,10,0" VerticalAlignment="Top" FontWeight="Bold"/>
+                <Label x:Name="lbl_forbidden_expressions" HorizontalContentAlignment="Right"  Content="Forbidden expressions" HorizontalAlignment="Left" Margin="10,147,0,0" VerticalAlignment="Top"/>
+                <TextBox x:Name="txt_forbidden_expressions" Height="23" Margin="137,151,10,0" TextWrapping="Wrap" Text="{Binding Source={StaticResource Settings}, Path=Default.ForbiddenExpressions}" VerticalAlignment="Top" IsEnabled="{Binding ElementName=chk_allow_to_run_cmd_commands, Path=IsChecked}"/>
+                <Separator Height="10" Margin="10,179,10,0" VerticalAlignment="Top"/>
+                <Label x:Name="lbl_" Content="Screenshots" Margin="10,194,10,0" VerticalAlignment="Top" FontWeight="Bold"/>
+                <CheckBox x:Name="chk_send_screenshots_as_file" Content="Send Screenshots as file (HQ)" Margin="10,225,10,0" VerticalAlignment="Top" IsChecked="{Binding Source={StaticResource Settings}, Path=Default.SendScreenshotFile, Mode=TwoWay}" IsEnabled="{Binding ElementName=chk_allow_to_send_screenshots, Path=IsChecked}"/>
+                <CheckBox x:Name="chk_send_screenshots_as_image" Content="Send Screenshots as image (LQ)" Margin="10,245,10,0" VerticalAlignment="Top" IsChecked="{Binding Source={StaticResource Settings}, Path=Default.SendScreenshotImage, Mode=TwoWay}" IsEnabled="{Binding ElementName=chk_allow_to_send_screenshots, Path=IsChecked}"/>
+                <Separator Height="10" Margin="10,265,10,0" VerticalAlignment="Top"/>
+                <Label x:Name="lbl_documents" Content="Documents" Margin="10,280,10,0" VerticalAlignment="Top" FontWeight="Bold"/>
+                <Label x:Name="lbl_forbidden_paths" HorizontalContentAlignment="Right" Content="Fordbiden paths" HorizontalAlignment="Left" Margin="10,307,0,0" VerticalAlignment="Top" Width="122"/>
+                <TextBox x:Name="txt_forbiden_paths" IsEnabled="{Binding ElementName=chk_allow_to_send_documents, Path=IsChecked}" Height="23" Margin="137,311,10,0" TextWrapping="Wrap" Text="{Binding Source={StaticResource Settings}, Path=Default.ForbiddenPaths}" VerticalAlignment="Top"/>
+            </Grid>
+        </ScrollViewer>
+        <Button x:Name="cmd_cancel" Content="Cancel" HorizontalAlignment="Right" Margin="0,0,30,10" Width="75" Height="20" VerticalAlignment="Bottom" Click="cmd_cancel_Click"/>
+        <Button x:Name="cmd_save" Content="Save" HorizontalAlignment="Right" Margin="0,0,110,10" Width="75" Height="20" VerticalAlignment="Bottom" Click="cmd_save_Click"/>
+        <Button x:Name="cmd_reset" Content="Reset" HorizontalAlignment="Left" Margin="10,0,0,10" Width="75" Height="20" VerticalAlignment="Bottom" Click="cmd_reset_Click"/>
+
+    </Grid>
+</Window>

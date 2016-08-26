@@ -1,28 +1,46 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Telegram.Bot;
 using Telegram.Bot.Args;
+using Telegram.Bot.Types;
 
 namespace TeleCommand.Controller
 {
     class BotController
     {
+        enum Commands
+        {
+            cmd,
+            screenshot
+        }
+
         private TelegramBotClient Bot;
         private string Username;
         private long LastReceivedChatId;
         private RichTextBox OutputTextbox;
         private MainWindow MainWindow;
 
-        public delegate void AppendResultLineCallback(string text);
-        public delegate void AppendRequestLineCallback(string text);
+        //Colors
+        static BrushConverter converter = new System.Windows.Media.BrushConverter();
+        Brush BrushRequest = (Brush)converter.ConvertFromString("#FF006606");
+        Brush BrushResponse = (Brush)converter.ConvertFromString("#FF00287F");
+        Brush BrushInfo = (Brush)converter.ConvertFromString("#FFAAAAAA");
+        Brush BrushDanger = (Brush)converter.ConvertFromString("#FFCC9000");
+        Brush BrushError = (Brush)converter.ConvertFromString("#FF990000");
+
+        //Messages
+        string MessageSettingDisabled = "This function is disabled in the settings. Please check to be able to use.";
+
+        public delegate void AppendLineCallback(string text, Brush brush, TextAlignment textAlignment);
 
         public bool StartBot(string username, string botId, RichTextBox tb, MainWindow mainWindow)
         {
             OutputTextbox = tb;
+            MainWindow = mainWindow;
             try
             {
                 //AppendAsyncInfoLine("Starting ...");
@@ -37,7 +55,7 @@ namespace TeleCommand.Controller
 
                 Bot.StartReceiving();
 
-                //AppendAsyncInfoLine("Bot started successfully");
+                AppendAsyncInfoLine("Bot started successfully");
 
                 var me = Bot.GetMeAsync().Result;
 
@@ -46,11 +64,10 @@ namespace TeleCommand.Controller
                 tb_Bot_ID.IsEnabled = false;
                 tb_Username.IsEnabled = false;*/
                 Username = username;
-                MainWindow = mainWindow;
 
                 return true;
             }
-            catch
+            catch (Exception e)
             {
                 return false;
                 //AppendAsyncInfoLine("Failed to start bot!");
@@ -90,24 +107,21 @@ namespace TeleCommand.Controller
 
         private void BotOnMessageReceived(object sender, MessageEventArgs e)
         {
-            //AppendAsyncResultLine(e.Message.Text);
             if (CheckUser(e.Message.From.Username))
             {
-                //string message = "User Accepted";
-                //sendMessage(message);
                 LastReceivedChatId = e.Message.Chat.Id;
-                this.OutputTextbox.Dispatcher.Invoke(new AppendRequestLineCallback(MainWindow.AppendResultLine), new object[] { e.Message.Text } );
-                //TODO Meldung auswerten
+                this.AppendAsyncResultLine(e.Message.Text);
+                EvaluateMessage(e.Message.Text);
             }
             else
             {
                 string message = "You have no power here";
-                sendMessage(message);
+                SendMessage(message);
                 LastReceivedChatId = e.Message.Chat.Id;
             }
         }
 
-        private void sendMessage(String message)
+        private void SendMessage(String message)
         {
             Bot.SendTextMessageAsync(LastReceivedChatId, message);
             AppendAsyncRequestLine(message);
@@ -121,17 +135,99 @@ namespace TeleCommand.Controller
 
         private void AppendAsyncInfoLine(String text)
         {
-            OutputTextbox.Dispatcher.Invoke(new AppendResultLineCallback(MainWindow.AppendResultLine), $"{text}");
+            MainWindow.AppendResultLine(text, BrushInfo, TextAlignment.Center);
         }
 
         private void AppendAsyncResultLine(String text)
         {
-            OutputTextbox.Dispatcher.Invoke(new AppendResultLineCallback(MainWindow.AppendResultLine), $"Received:  {text}");
+            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushResponse, TextAlignment.Left);
         }
 
         private void AppendAsyncRequestLine(String text)
         {
-            OutputTextbox.Dispatcher.Invoke(new AppendResultLineCallback(MainWindow.AppendResultLine), $"Sent: \t   {text}");
+            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushRequest, TextAlignment.Right);
         }
+
+        private void EvaluateMessage(string message)
+        {
+            if (!message.ToCharArray()[0].Equals('/'))
+            {
+                SendMessage($"Your message '{message}' was not recognized as a command. '/' is missing. ");
+                return;
+            }
+            string command;
+            string[] arguments = { };
+            if (message.IndexOf(" ") < 0)
+            {
+                command = message;
+            }
+            else
+            {
+                string[] tmp = message.Split(' ');
+                command = tmp[0];
+                arguments = new string[(command.Length - 1)];
+                for (int i = 1; i < tmp.Length; i++)
+                {
+                    arguments[i + 1] = tmp[i];
+                }
+            }
+
+            EvaluateCommand(command, arguments);
+        }
+
+
+        private async void EvaluateCommand(string command, string[] args)
+        {
+
+            switch (command.Replace("/", string.Empty).ToLower())
+            {
+                case "screenshot":
+                    if (!Properties.Settings.Default.AllowScreenshotRequest)
+                    {
+                        SendMessage(MessageSettingDisabled);
+                        return;
+                    }
+                    SendMessage("Screenshot gets rendered...");
+                    string screenshotPath = ScreenshotController.GetScreenshot();
+                    FileToSend fts = new FileToSend();
+                    if (Properties.Settings.Default.SendScreenshotFile)
+                        using (var stream = System.IO.File.Open(screenshotPath, FileMode.Open))
+                        {
+                            fts.Content = stream;
+                            fts.Filename = screenshotPath.Split('\\').Last();
+                            //await Bot.SendPhotoAsync(this.LastReceivedChatId, fts, "My Text");
+                            try
+                            {
+                                await Bot.SendDocumentAsync(this.LastReceivedChatId, fts, "My Text");
+                            }
+                            catch (Exception e)
+                            {
+                                AppendAsyncInfoLine(e.Message);
+                            }
+                        }
+
+                    if (Properties.Settings.Default.SendScreenshotImage)
+                        using (var stream = System.IO.File.Open(screenshotPath, FileMode.Open))
+                        {
+                            fts.Content = stream;
+                            fts.Filename = screenshotPath.Split('\\').Last();
+                            try
+                            {
+                                await Bot.SendPhotoAsync(this.LastReceivedChatId, fts, "My Text");
+                                //    await Bot.SendDocumentAsync(this.LastReceivedChatId, fts, "My Text");
+                            }
+                            catch (Exception e)
+                            {
+                                AppendAsyncInfoLine(e.Message);
+                            }
+                        }
+
+                    break;
+                default:
+                    SendMessage($"Command {command} cound not be interpreted");
+                    break;
+            }
+        }
+
     }
 }

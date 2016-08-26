@@ -6,14 +6,21 @@
         xmlns:local="clr-namespace:TeleCommand"
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
-    <Grid>
-        <Label x:Name="lbl_Bot_ID" Content="Bot ID" HorizontalAlignment="Left" Margin="30,10,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="tb_Bot_ID" Height="23" TextWrapping="Wrap" Text=""  VerticalAlignment="Top" Margin="78,13,10,0" AcceptsReturn="False"/>
-        <Label x:Name="lbl_Username" Content="Username" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="tb_Username" Height="23" Margin="78,45,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" AcceptsReturn="False" />
-        <RichTextBox x:Name="tb_Output" Margin="10,73,10,30" AcceptsReturn="True" IsReadOnly="True" VerticalScrollBarVisibility="Visible"/>
+    <Grid Margin="0,0,0,5">
+        <Label x:Name="lbl_Bot_ID" Content="Bot ID" HorizontalContentAlignment="Right" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="63"/>
+        <TextBox x:Name="tb_Bot_ID" Height="23" TextWrapping="Wrap" Text="{Binding Source={StaticResource Settings}, Path=Default.BotID}"  VerticalAlignment="Top" Margin="78,13,10,0" AcceptsReturn="False"/>
+        <Label x:Name="lbl_Username" Content="Username" HorizontalContentAlignment="Right" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="tb_Username" Height="23" Margin="78,45,10,0" TextWrapping="Wrap" Text="{Binding Source={StaticResource Settings}, Path=Default.Username}" VerticalAlignment="Top" AcceptsReturn="False" />
+        <RichTextBox x:Name="tb_Output" Margin="10,73,10,30" AcceptsReturn="True" IsReadOnly="True" VerticalScrollBarVisibility="Visible">
+            <RichTextBox.Resources>
+                <Style TargetType="{x:Type Paragraph}">
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </RichTextBox.Resources>
+        </RichTextBox>
         <Button x:Name="btn_stop" Content="Stop" HorizontalAlignment="Right" Margin="0,0,10,5" VerticalAlignment="Bottom" Width="75" Click="btn_stop_Click"/>
         <Button x:Name="btn_start" Content="Start" HorizontalAlignment="Right" Margin="0,0,90,5" VerticalAlignment="Bottom" Width="75" Click="btn_start_Click"/>
+        <Button x:Name="button" Content="Settings" HorizontalAlignment="Left" Margin="10,0,0,5" Width="75" Height="20" VerticalAlignment="Bottom" Click="button_Click"/>
 
 
     </Grid>
