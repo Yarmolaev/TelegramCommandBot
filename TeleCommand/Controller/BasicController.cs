@@ -131,23 +131,78 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 
                     break;
                 #endregion
+                #region cmd
                 case "cmd":
+                    if (!Properties.Settings.Default.AllowCmdRequest)
+                    {
+                        botController.SendMessage(MessageSettingDisabled);
+                        return;
+                    }
                     if (args.Length < 1)
                     {
                         BotController.GetInstance(Username, BotId, MainWindow).SendMessage("Command cmd needs at least one parameter");
                         return;
                     }
-                    CmdController.GetInstance().RunCommand(string.Join(" ", args));
+
+                    string[] forbiddenExpressions = Properties.Settings.Default.ForbiddenExpressions.Split(';');
+
+                    string expression = string.Join(" ", args);
+
+                    if (forbiddenExpressions.Any(s => expression.Trim().Contains(s)))
+                    {
+                        botController.SendMessage("Your expression contains forbidden characters");
+                        return;
+                    }
+
+                    CmdController.GetInstance().RunCommand(expression);
                     break;
+                #endregion
+                #region file
+                case "file":
+                    if (!Properties.Settings.Default.AllowSendDocuments)
+                    {
+                        botController.SendMessage(MessageSettingDisabled);
+                        return;
+                    }
+                    string path = string.Join(" ", args);
+                    string[] forbiddenPaths = Properties.Settings.Default.ForbiddenPaths.Split(';');
+                    if(forbiddenPaths.Any(s => path.Trim().Contains(s)))
+                    {
+                        botController.SendMessage("Your parameter contains forbidden characters");
+                        return;
+                    }
+                    if (!System.IO.File.Exists(path))
+                    {
+                        BotController.GetInstance(Username, BotId, MainWindow).SendMessage($"No document found at '{path}'");
+                    }
+                    else
+                    {
+                        using (var stream = System.IO.File.Open(path, FileMode.Open))
+                        {
+                            fts.Content = stream;
+                            fts.Filename = path.Split('\\').Last();
+                            try
+                            {
+                                await BotController.GetInstance(Username, BotId, MainWindow).Bot.SendDocumentAsync(BotController.GetInstance(Username, BotId, MainWindow).LastReceivedChatId, fts);
+                            }
+                            catch (Exception e)
+                            {
+                                AppendAsyncInfoLine(e.Message);
+                            }
+                        }
+                    }
+
+                    break;
+                #endregion
                 default:
                     BotController.GetInstance(Username, BotId, MainWindow).SendMessage($"Command {command} cound not be interpreted");
                     break;
             }
         }
 
-        public async void SendMessage(string text)
+        public void SendMessage(string text)
         {
-            await BotController.GetInstance(Username, BotId, MainWindow).SendMessage(text);
+            BotController.GetInstance(Username, BotId, MainWindow).SendMessage(text);
         }
 
     }

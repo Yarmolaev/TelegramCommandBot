@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -68,7 +69,7 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 
                 var me = Bot.GetMeAsync().Result;
 
-
+                WaitingMessages = new List<string>();
 
                 return true;
             }
@@ -131,8 +132,10 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 
         public void SendMessage(String message)
         {
+            if (timer == null)
+                Loopy(2);
             WaitingMessages.Add(message);
-            if (NextMessageAt == null || DateTime.Now > NextMessageAt)
+            /*if (NextMessageAt == null || DateTime.Now > NextMessageAt)
             {
                 //Message can be sent
                 string completeMessage = string.Join("\r\n", WaitingMessages.ToArray());
@@ -140,9 +143,59 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
                 BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncRequestLine(completeMessage);
 
                 NextMessageAt = DateTime.Now.AddSeconds(2d);
-            }
+                WaitingMessages.Clear();
+            }*/
         }
 
+        private void SendMessage()
+        {
+            if (NextMessageAt == null)
+            {
+                NextMessageAt = DateTime.Now.AddSeconds(2d);
+            }
+            if (DateTime.Now > NextMessageAt && WaitingMessages.Count > 0)
+            {
+                //Message can be sent
+                string completeMessage = string.Join("\r\n", WaitingMessages.ToArray());
+                try
+                {
+                    Bot.SendTextMessageAsync(LastReceivedChatId, completeMessage);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncRequestLine(completeMessage);
+
+                NextMessageAt = DateTime.Now.AddSeconds(2d);
+                WaitingMessages.Clear();
+            }
+            else if (WaitingMessages.Count == 0)
+            {
+                timer.Dispose();
+            }
+        }
+        int count = 0;
+        Timer timer;
+        void Loopy(int times)
+        {
+            count = times;
+            timer = new Timer(2000);
+            timer.Enabled = true;
+            timer.Elapsed += new ElapsedEventHandler(timer_Elapsed);
+            timer.Disposed += new EventHandler(timer_Disposed);
+            timer.Start();
+        }
+
+        private void timer_Disposed(object sender, EventArgs e)
+        {
+            timer = null;
+        }
+
+        void timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            SendMessage();
+        }
 
         public bool CheckUser(string username)
         {
