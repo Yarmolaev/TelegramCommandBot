@@ -5,6 +5,9 @@
 4. Available commands
 
 ##Short overview
+
+![alt tag](https://github.com/Yarmolaev/TelegramCommandBot/blob/develop/2016-08-27%2019_33_03-.png)
+
 Hey Guys,
 this is my first GitHub project and my English might be not the very best, but I think the point of my tool is prety good. It lets you communicate to your Windows Computer by the chat messenger Telegram. 
 For now there are three main approaches:
