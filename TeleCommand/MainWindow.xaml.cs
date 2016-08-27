@@ -11,7 +11,7 @@ namespace de.yarmolaev.TelegramCommandBot
     public partial class MainWindow : Window
     {
 
-        BotController BotController;
+
 
         //private readonly static int apiId = 88462;
         //private readonly static string apiHash = "e28d2b32dec3f3246894e87eb4b858c3";
@@ -27,16 +27,19 @@ namespace de.yarmolaev.TelegramCommandBot
         /// <param name="e"></param>
         private void btn_start_Click(object sender, RoutedEventArgs e)
         {
-            this.BotController = new BotController();
-            if(this.BotController.StartBot(tb_Username.Text, tb_Bot_ID.Text, tb_Output, this))
+            //BasicController.GetInstance(this, tb_Username.Text, tb_Bot_ID.Text);
+            //this.BotController = new BotController();
+            //if(this.BotController.StartBot())
+            if (BasicController.GetInstance(this, tb_Username.Text, tb_Bot_ID.Text).StartBot())
             {
                 StartStopBotUI(true);
-            }else
+            }
+            /*else
             {
                 StartStopBotUI(false);
             }
 
-            Properties.Settings.Default.Save();
+            Properties.Settings.Default.Save();*/
 
         }
 
@@ -47,7 +50,7 @@ namespace de.yarmolaev.TelegramCommandBot
         /// <param name="e"></param>
         private void btn_stop_Click(object sender, RoutedEventArgs e)
         {
-            if (BotController.StopBot())
+            if (BasicController.GetInstance(this, tb_Username.Text, tb_Bot_ID.Text).StopBot())
             {
                 StartStopBotUI(false);
             }

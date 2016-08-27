@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -12,39 +14,47 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 {
     class BotController
     {
+
+
         enum Commands
         {
             cmd,
             screenshot
         }
 
-        private TelegramBotClient Bot;
-        private string Username;
-        private long LastReceivedChatId;
-        private RichTextBox OutputTextbox;
-        private MainWindow MainWindow;
+        DateTime NextMessageAt;
+        List<string> WaitingMessages;
 
-        //Colors
-        static BrushConverter converter = new System.Windows.Media.BrushConverter();
-        Brush BrushRequest = (Brush)converter.ConvertFromString("#FF006606");
-        Brush BrushResponse = (Brush)converter.ConvertFromString("#FF00287F");
-        Brush BrushInfo = (Brush)converter.ConvertFromString("#FFAAAAAA");
-        Brush BrushWarning = (Brush)converter.ConvertFromString("#FFCC9000");
-        Brush BrushError = (Brush)converter.ConvertFromString("#FF990000");
+        public string Username;
+        public long LastReceivedChatId;
 
-        //Messages
-        string MessageSettingDisabled = "This function is disabled in the settings. Please check to be able to use.";
+        public TelegramBotClient Bot;
 
-        public delegate void AppendLineCallback(string text, Brush brush, TextAlignment textAlignment);
+        MainWindow MainWindow;
 
-        public bool StartBot(string username, string botId, RichTextBox tb, MainWindow mainWindow)
+        private static BotController Controller;
+        private string BotId;
+
+        private BotController(string username, string botId, MainWindow mainWindow)
         {
-            OutputTextbox = tb;
+            Username = username;
+            this.BotId = botId;
             MainWindow = mainWindow;
+        }
+
+        public static BotController GetInstance(string username, string botId, MainWindow mainWindow)
+        {
+            if (Controller == null)
+                Controller = new BotController(username, botId, mainWindow);
+            return Controller;
+        }
+
+        public bool StartBot()
+        {
+
             try
             {
-                //AppendAsyncInfoLine("Starting ...");
-                Bot = new TelegramBotClient(botId);
+                Bot = new TelegramBotClient(BotId);
 
                 Bot.OnCallbackQuery += BotOnCallbackQueryReceived;
                 Bot.OnMessage += BotOnMessageReceived;
@@ -55,23 +65,21 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 
                 Bot.StartReceiving();
 
-                AppendAsyncInfoLine("Bot started successfully");
+                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncInfoLine("Bot started successfully");
 
                 var me = Bot.GetMeAsync().Result;
 
-
-                Username = username;
+                WaitingMessages = new List<string>();
 
                 return true;
             }
             catch (Exception e)
             {
                 return false;
-                //AppendAsyncInfoLine("Failed to start bot!");
             }
         }
 
-        
+
 
         private void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs e)
         {
@@ -84,16 +92,16 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
             {
                 Bot.StopReceiving();
                 Bot = null;
-                AppendAsyncInfoLine("Bot stopped successfully");
+                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncInfoLine("Bot stopped successfully");
                 return true;
             }
-            AppendAsyncInfoLine("Error ocured while stopping bot.");
+            BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncInfoLine("Error ocured while stopping bot.");
             return false;
         }
 
         private void BotOnReceiveError(object sender, ReceiveErrorEventArgs e)
         {
-            throw new NotImplementedException();
+            SendMessage(e.ToString());
         }
 
         private void BotOnChosenInlineResultReceived(object sender, ChosenInlineResultEventArgs e)
@@ -111,7 +119,7 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
             if (CheckUser(e.Message.From.Username))
             {
                 LastReceivedChatId = e.Message.Chat.Id;
-                this.AppendAsyncResultLine(e.Message.Text);
+                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncResultLine(e.Message.Text);
                 EvaluateMessage(e.Message.Text);
             }
             else
@@ -122,39 +130,81 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
             }
         }
 
-        private void SendMessage(String message)
+        public void SendMessage(String message)
         {
-            Bot.SendTextMessageAsync(LastReceivedChatId, message);
-            AppendAsyncRequestLine(message);
+            if (timer == null)
+                Loopy(2);
+            WaitingMessages.Add(message);
+            /*if (NextMessageAt == null || DateTime.Now > NextMessageAt)
+            {
+                //Message can be sent
+                string completeMessage = string.Join("\r\n", WaitingMessages.ToArray());
+                Bot.SendTextMessageAsync(LastReceivedChatId, completeMessage);
+                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncRequestLine(completeMessage);
+
+                NextMessageAt = DateTime.Now.AddSeconds(2d);
+                WaitingMessages.Clear();
+            }*/
         }
 
+        private void SendMessage()
+        {
+            if (NextMessageAt == null)
+            {
+                NextMessageAt = DateTime.Now.AddSeconds(2d);
+            }
+            if (DateTime.Now > NextMessageAt && WaitingMessages.Count > 0)
+            {
+                //Message can be sent
+                string completeMessage = string.Join("\r\n", WaitingMessages.ToArray());
+                try
+                {
+                    Bot.SendTextMessageAsync(LastReceivedChatId, completeMessage);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncRequestLine(completeMessage);
 
-        private bool CheckUser(string username)
+                NextMessageAt = DateTime.Now.AddSeconds(2d);
+                WaitingMessages.Clear();
+            }
+            else if (WaitingMessages.Count == 0)
+            {
+                timer.Dispose();
+            }
+        }
+        int count = 0;
+        Timer timer;
+        void Loopy(int times)
+        {
+            count = times;
+            timer = new Timer(2000);
+            timer.Enabled = true;
+            timer.Elapsed += new ElapsedEventHandler(timer_Elapsed);
+            timer.Disposed += new EventHandler(timer_Disposed);
+            timer.Start();
+        }
+
+        private void timer_Disposed(object sender, EventArgs e)
+        {
+            timer = null;
+        }
+
+        void timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            SendMessage();
+        }
+
+        public bool CheckUser(string username)
         {
             return username.Equals(Username, StringComparison.OrdinalIgnoreCase);
         }
 
-        private void AppendAsyncInfoLine(String text)
-        {
-            MainWindow.AppendResultLine(text, BrushInfo, TextAlignment.Center);
-        }
 
-        private void AppendAsyncResultLine(String text)
-        {
-            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushResponse, TextAlignment.Left);
-        }
 
-        private void AppendAsyncRequestLine(String text)
-        {
-            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushRequest, TextAlignment.Right);
-        }
-
-        private void AppendAsyncWarningLine(String text)
-        {
-            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushWarning, TextAlignment.Left);
-        }
-
-        private void EvaluateMessage(string message)
+        public void EvaluateMessage(string message)
         {
             if (!message.ToCharArray()[0].Equals('/'))
             {
@@ -171,69 +221,20 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
             {
                 string[] tmp = message.Split(' ');
                 command = tmp[0];
-                arguments = new string[(command.Length - 1)];
+                arguments = new string[(tmp.Length - 1)];
                 for (int i = 1; i < tmp.Length; i++)
                 {
-                    arguments[i + 1] = tmp[i];
+                    arguments[i - 1] = tmp[i];
                 }
             }
 
-            EvaluateCommand(command, arguments);
+            BasicController.GetInstance(MainWindow, Username, BotId).EvaluateCommand(command, arguments, this);
         }
 
 
-        private async void EvaluateCommand(string command, string[] args)
-        {
 
-            switch (command.Replace("/", string.Empty).ToLower())
-            {
-                case "screenshot":
-                    if (!Properties.Settings.Default.AllowScreenshotRequest)
-                    {
-                        SendMessage(MessageSettingDisabled);
-                        return;
-                    }
-                    SendMessage("Screenshot gets rendered...");
-                    string screenshotPath = ScreenshotController.GetScreenshot();
-                    FileToSend fts = new FileToSend();
-                    if (Properties.Settings.Default.SendScreenshotFile)
-                        using (var stream = System.IO.File.Open(screenshotPath, FileMode.Open))
-                        {
-                            fts.Content = stream;
-                            fts.Filename = screenshotPath.Split('\\').Last();
-                            //await Bot.SendPhotoAsync(this.LastReceivedChatId, fts, "My Text");
-                            try
-                            {
-                                await Bot.SendDocumentAsync(this.LastReceivedChatId, fts, "My Text");
-                            }
-                            catch (Exception e)
-                            {
-                                AppendAsyncInfoLine(e.Message);
-                            }
-                        }
 
-                    if (Properties.Settings.Default.SendScreenshotImage)
-                        using (var stream = System.IO.File.Open(screenshotPath, FileMode.Open))
-                        {
-                            fts.Content = stream;
-                            fts.Filename = screenshotPath.Split('\\').Last();
-                            try
-                            {
-                                await Bot.SendPhotoAsync(this.LastReceivedChatId, fts, "My Text");
-                                //    await Bot.SendDocumentAsync(this.LastReceivedChatId, fts, "My Text");
-                            }
-                            catch (Exception e)
-                            {
-                                AppendAsyncInfoLine(e.Message);
-                            }
-                        }
 
-                    break;
-                default:
-                    SendMessage($"Command {command} cound not be interpreted");
-                    break;
-            }
-        }
 
     }
 }
