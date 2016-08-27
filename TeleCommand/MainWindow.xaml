@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:de.yarmolaev.TelegramCommandBot"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="Telegram Command Bot" Height="350" Width="525">
     <Grid Margin="0,0,0,5">
         <Label x:Name="lbl_Bot_ID" Content="Bot ID" HorizontalContentAlignment="Right" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="63"/>
         <TextBox x:Name="tb_Bot_ID" Height="23" TextWrapping="Wrap" Text="{Binding Source={StaticResource Settings}, Path=Default.BotID}"  VerticalAlignment="Top" Margin="78,13,10,0" AcceptsReturn="False"/>
