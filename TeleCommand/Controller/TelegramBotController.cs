@@ -12,60 +12,83 @@ using Telegram.Bot.Types;
 
 namespace de.yarmolaev.TelegramCommandBot.Controller
 {
-    class BotController
+    class TelegramBotController
     {
+        #region Instance
+        private static TelegramBotController Controller;
+        #endregion
 
-
-        enum Commands
-        {
-            cmd,
-            screenshot
-        }
-
+        #region Fields
+        public TelegramBotClient Bot;
         DateTime NextMessageAt;
         List<string> WaitingMessages;
-
-        public string Username;
-        public long LastReceivedChatId;
-
-        public TelegramBotClient Bot;
-
         MainWindow MainWindow;
-
-        private static BotController Controller;
+        public string Username;
         private string BotId;
+        public long LastReceivedChatId;
+        int count = 0;
+        Timer timer;
+        #endregion
 
-        private BotController(string username, string botId, MainWindow mainWindow)
+        /// <summary>
+        /// Contructor for the TelegramBotController
+        /// </summary>
+        /// <param name="mainWindow">MainWindow needed to call methods defined in it.</param>
+        /// <param name="botId">Bot ID needed to start bot</param>
+        /// <param name="username">Username needed to start bot</param>
+        private TelegramBotController(MainWindow mainWindow, string botId, string username)
         {
             Username = username;
-            this.BotId = botId;
+            BotId = botId;
             MainWindow = mainWindow;
         }
 
-        public static BotController GetInstance(string username, string botId, MainWindow mainWindow)
+        /// <summary>
+        /// Returns the instance of TelegramBotController
+        /// </summary>
+        /// <param name="mainWindow">MainWindow needed to call methods defined in it.</param>
+        /// <param name="botId">Bot ID needed to start bot</param>
+        /// <param name="username">Username needed to start bot</param>
+        /// <returns></returns>
+        public static TelegramBotController GetInstance(MainWindow mainWindow, string botId, string username)
         {
             if (Controller == null)
-                Controller = new BotController(username, botId, mainWindow);
+                Controller = new TelegramBotController(mainWindow, botId, username);
             return Controller;
         }
 
+        /// <summary>
+        /// Resets the Controller
+        /// </summary>
+        public static void ResetController()
+        {
+            Controller = null;
+        }
+
+        /// <summary>
+        /// Starts the bot
+        /// </summary>
+        /// <returns></returns>
         public bool StartBot()
         {
-
             try
             {
+                #region New bot instance
                 Bot = new TelegramBotClient(BotId);
+                #endregion
 
+                #region Defining for bot result methods
                 Bot.OnCallbackQuery += BotOnCallbackQueryReceived;
                 Bot.OnMessage += BotOnMessageReceived;
                 Bot.OnMessageEdited += BotOnMessageReceived;
                 Bot.OnInlineQuery += BotOnInlineQueryReceived;
                 Bot.OnInlineResultChosen += BotOnChosenInlineResultReceived;
                 Bot.OnReceiveError += BotOnReceiveError;
+                #endregion
 
                 Bot.StartReceiving();
 
-                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncInfoLine("Bot started successfully");
+                GetBasicControllerInstance().AppendAsyncInfoLine("Bot started successfully");
 
                 var me = Bot.GetMeAsync().Result;
 
@@ -75,28 +98,41 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
             }
             catch (Exception e)
             {
+                GetBasicControllerInstance().AppendAsyncErrorLine(e.Message);
                 return false;
             }
         }
 
-
-
-        private void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs e)
+        /// <summary>
+        /// Gets easy the BasicController instance
+        /// </summary>
+        /// <returns></returns>
+        private BasicController GetBasicControllerInstance()
         {
-            throw new NotImplementedException();
+            return BasicController.GetInstance(MainWindow, BotId, Username);
         }
-
+        
+        /// <summary>
+        /// Stopps the bot
+        /// </summary>
+        /// <returns>True if successfull, false if not</returns>
         public bool StopBot()
         {
             if (Bot != null)
             {
                 Bot.StopReceiving();
                 Bot = null;
-                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncInfoLine("Bot stopped successfully");
+                GetBasicControllerInstance().AppendAsyncInfoLine("Bot stopped successfully");
                 return true;
             }
-            BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncInfoLine("Error ocured while stopping bot.");
+            GetBasicControllerInstance().AppendAsyncInfoLine("Error ocured while stopping bot.");
             return false;
+        }
+
+        #region SimpleReceiver
+        private void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs e)
+        {
+            throw new NotImplementedException();
         }
 
         private void BotOnReceiveError(object sender, ReceiveErrorEventArgs e)
@@ -113,13 +149,19 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
         {
             throw new NotImplementedException();
         }
+        #endregion
 
+        /// <summary>
+        /// Evaluates the received message and user rights
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void BotOnMessageReceived(object sender, MessageEventArgs e)
         {
             if (CheckUser(e.Message.From.Username))
             {
                 LastReceivedChatId = e.Message.Chat.Id;
-                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncResultLine(e.Message.Text);
+                GetBasicControllerInstance().AppendAsyncResultLine(e.Message.Text);
                 EvaluateMessage(e.Message.Text);
             }
             else
@@ -130,23 +172,20 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
             }
         }
 
+        /// <summary>
+        /// Prepares a message to be sent
+        /// </summary>
+        /// <param name="message"></param>
         public void SendMessage(String message)
         {
             if (timer == null)
                 Loopy(2);
             WaitingMessages.Add(message);
-            /*if (NextMessageAt == null || DateTime.Now > NextMessageAt)
-            {
-                //Message can be sent
-                string completeMessage = string.Join("\r\n", WaitingMessages.ToArray());
-                Bot.SendTextMessageAsync(LastReceivedChatId, completeMessage);
-                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncRequestLine(completeMessage);
-
-                NextMessageAt = DateTime.Now.AddSeconds(2d);
-                WaitingMessages.Clear();
-            }*/
         }
 
+        /// <summary>
+        /// Sends all prepared messages after 2 seconds
+        /// </summary>
         private void SendMessage()
         {
             if (NextMessageAt == null)
@@ -165,7 +204,7 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
                 {
                     Console.WriteLine(e.Message);
                 }
-                BasicController.GetInstance(MainWindow, Username, BotId).AppendAsyncRequestLine(completeMessage);
+                GetBasicControllerInstance().AppendAsyncRequestLine(completeMessage);
 
                 NextMessageAt = DateTime.Now.AddSeconds(2d);
                 WaitingMessages.Clear();
@@ -175,8 +214,11 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
                 timer.Dispose();
             }
         }
-        int count = 0;
-        Timer timer;
+        
+        /// <summary>
+        /// Waits 2 seconds in a loop
+        /// </summary>
+        /// <param name="times">loop times</param>
         void Loopy(int times)
         {
             count = times;
@@ -187,23 +229,40 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
             timer.Start();
         }
 
+        /// <summary>
+        /// Resets the timer
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void timer_Disposed(object sender, EventArgs e)
         {
             timer = null;
         }
 
+        /// <summary>
+        /// Being called if timer is runed once
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         void timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             SendMessage();
         }
 
+        /// <summary>
+        /// Checks if user has the right to call commands
+        /// </summary>
+        /// <param name="username"></param>
+        /// <returns></returns>
         public bool CheckUser(string username)
         {
             return username.Equals(Username, StringComparison.OrdinalIgnoreCase);
         }
 
-
-
+        /// <summary>
+        /// Evaluates the message
+        /// </summary>
+        /// <param name="message"></param>
         public void EvaluateMessage(string message)
         {
             if (!message.ToCharArray()[0].Equals('/'))
@@ -228,13 +287,8 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
                 }
             }
 
-            BasicController.GetInstance(MainWindow, Username, BotId).EvaluateCommand(command, arguments, this);
+            GetBasicControllerInstance().EvaluateCommand(command, arguments);
         }
-
-
-
-
-
 
     }
 }

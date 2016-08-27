@@ -13,90 +13,135 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 {
     class BasicController
     {
-
+        #region Definitions
+        #region Fields
         private RichTextBox OutputTextbox;
         private MainWindow MainWindow;
-
         private string Username;
         private string BotId;
+        #endregion
 
-
-        //Colors
+        #region Colors
         static BrushConverter converter = new System.Windows.Media.BrushConverter();
         Brush BrushRequest = (Brush)converter.ConvertFromString("#FF006606");
         Brush BrushResponse = (Brush)converter.ConvertFromString("#FF00287F");
         Brush BrushInfo = (Brush)converter.ConvertFromString("#FFAAAAAA");
         Brush BrushWarning = (Brush)converter.ConvertFromString("#FFCC9000");
         Brush BrushError = (Brush)converter.ConvertFromString("#FF990000");
+        #endregion
 
-
-        //Messages
+        #region Messages
         string MessageSettingDisabled = "This function is disabled in the settings. Please check to be able to use.";
+        #endregion
 
-
+        #region Delegates
         public delegate void AppendLineCallback(string text, Brush brush, TextAlignment textAlignment);
-
+        #endregion
+        #region Instance
         private static BasicController Controller { get; set; }
+        #endregion
+        #endregion
 
-        private BasicController(MainWindow mainWindow, string username, string botId)
+        #region Methods
+
+        #region Controller operations
+        /// <summary>
+        /// Constructor for BasicController
+        /// </summary>
+        /// <param name="mainWindow">MainWindow needed to call methods defined in it.</param>
+        /// <param name="botId">Bot ID needed to start bot</param>
+        /// <param name="username">Username needed to start bot</param>
+        private BasicController(MainWindow mainWindow, string botId, string username)
         {
+            #region Setting fields
             MainWindow = mainWindow;
             OutputTextbox = mainWindow.tb_Output;
 
             Username = username;
             BotId = botId;
+            #endregion
         }
 
-        public bool StartBot()
-        {
-            return BotController.GetInstance(Username, BotId, MainWindow).StartBot();
-        }
-
-        public bool StopBot()
-        {
-            return BotController.GetInstance(Username, BotId, MainWindow).StopBot();
-        }
-
-        public static BasicController GetInstance(MainWindow mainWindow, string username, string botId)
+        /// <summary>
+        /// Returns the instance of BasicController
+        /// </summary>
+        /// <param name="mainWindow">MainWindow needed to call methods defined in it.</param>
+        /// <param name="botId">Bot ID needed to start bot</param>
+        /// <param name="username">Username needed to start bot</param>
+        /// <returns></returns>
+        public static BasicController GetInstance(MainWindow mainWindow, string botId, string username)
         {
             if (Controller == null)
-                Controller = new BasicController(mainWindow, username, botId);
+                Controller = new BasicController(mainWindow, botId, username);
             return Controller;
         }
 
-        public void AppendAsyncInfoLine(String text)
+        /// <summary>
+        /// Easy way to get telegram bot controller cnstance
+        /// </summary>
+        /// <returns></returns>
+        private TelegramBotController GetTelegramBotControllerInstance()
         {
-            MainWindow.AppendResultLine(text, BrushInfo, TextAlignment.Center);
+            return TelegramBotController.GetInstance(MainWindow, BotId, Username);
         }
 
-        public void AppendAsyncResultLine(String text)
+        /// <summary>
+        /// Easy way to get cmd controller instance
+        /// </summary>
+        /// <returns></returns>
+        private CmdController GetCmdControllerInstance()
         {
-            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushResponse, TextAlignment.Right);
+            return CmdController.GetInstance();
         }
 
-        public void AppendAsyncRequestLine(String text)
+        /// <summary>
+        /// Resets all controller to get a clean restart
+        /// </summary>
+        public static void ResetController()
         {
-            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushRequest, TextAlignment.Left);
+            CmdController.ResetController();
+            TelegramBotController.ResetController();
+            Controller = null;
+        }
+        #endregion
+
+        #region Bot communication
+        /// <summary>
+        /// Starts the Telegram Bot
+        /// </summary>
+        /// <returns></returns>
+        public bool StartBot()
+        {
+            return GetTelegramBotControllerInstance().StartBot();
         }
 
-        public void AppendAsyncWarningLine(String text)
+        /// <summary>
+        /// Stops the telegram bot
+        /// </summary>
+        /// <returns></returns>
+        public bool StopBot()
         {
-            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushWarning, TextAlignment.Right);
+            return GetTelegramBotControllerInstance().StopBot();
         }
 
-        public async void EvaluateCommand(string command, string[] args, BotController botController)
+        /// <summary>
+        /// Evaluates the given command
+        /// </summary>
+        /// <param name="command">Command to be runed</param>
+        /// <param name="args">Arguments to specify the command</param>
+        public async void EvaluateCommand(string command, string[] args)
         {
 
             switch (command.Replace("/", string.Empty).ToLower())
             {
-                #region Screenshot
+                #region screenshot
                 case "screenshot":
                     if (!Properties.Settings.Default.AllowScreenshotRequest)
                     {
-                        botController.SendMessage(MessageSettingDisabled);
+                        GetTelegramBotControllerInstance().SendMessage(MessageSettingDisabled);
                         return;
                     }
-                    BotController.GetInstance(Username, BotId, MainWindow).SendMessage("Screenshot gets rendered...");
+                    GetTelegramBotControllerInstance().SendMessage("Screenshot gets rendered...");
                     string screenshotPath = ScreenshotController.GetScreenshot();
                     FileToSend fts = new FileToSend();
                     if (Properties.Settings.Default.SendScreenshotFile)
@@ -106,7 +151,7 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
                             fts.Filename = screenshotPath.Split('\\').Last();
                             try
                             {
-                                await BotController.GetInstance(Username, BotId, MainWindow).Bot.SendDocumentAsync(BotController.GetInstance(Username, BotId, MainWindow).LastReceivedChatId, fts, "Screenshot Document (HQ)");
+                                await GetTelegramBotControllerInstance().Bot.SendDocumentAsync(GetTelegramBotControllerInstance().LastReceivedChatId, fts, "Screenshot Document (HQ)");
                             }
                             catch (Exception e)
                             {
@@ -121,7 +166,7 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
                             fts.Filename = screenshotPath.Split('\\').Last();
                             try
                             {
-                                await BotController.GetInstance(Username, BotId, MainWindow).Bot.SendPhotoAsync(BotController.GetInstance(Username, BotId, MainWindow).LastReceivedChatId, fts, "Screenshot Image (LQ)");
+                                await GetTelegramBotControllerInstance().Bot.SendPhotoAsync(GetTelegramBotControllerInstance().LastReceivedChatId, fts, "Screenshot Image (LQ)");
                             }
                             catch (Exception e)
                             {
@@ -135,12 +180,12 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
                 case "cmd":
                     if (!Properties.Settings.Default.AllowCmdRequest)
                     {
-                        botController.SendMessage(MessageSettingDisabled);
+                        GetTelegramBotControllerInstance().SendMessage(MessageSettingDisabled);
                         return;
                     }
                     if (args.Length < 1)
                     {
-                        BotController.GetInstance(Username, BotId, MainWindow).SendMessage("Command cmd needs at least one parameter");
+                        GetTelegramBotControllerInstance().SendMessage("Command cmd needs at least one parameter");
                         return;
                     }
 
@@ -148,9 +193,9 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 
                     string expression = string.Join(" ", args);
 
-                    if (forbiddenExpressions.Any(s => expression.Trim().Contains(s)))
+                    if (!(forbiddenExpressions.Length == 1 && forbiddenExpressions[0] == "") && forbiddenExpressions.Any(s => expression.Trim().Contains(s)))
                     {
-                        botController.SendMessage("Your expression contains forbidden characters");
+                        GetTelegramBotControllerInstance().SendMessage("Your expression contains forbidden characters");
                         return;
                     }
 
@@ -161,19 +206,19 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
                 case "file":
                     if (!Properties.Settings.Default.AllowSendDocuments)
                     {
-                        botController.SendMessage(MessageSettingDisabled);
+                        GetTelegramBotControllerInstance().SendMessage(MessageSettingDisabled);
                         return;
                     }
                     string path = string.Join(" ", args);
                     string[] forbiddenPaths = Properties.Settings.Default.ForbiddenPaths.Split(';');
-                    if(forbiddenPaths.Any(s => path.Trim().Contains(s)))
+                    if (!(forbiddenPaths.Length == 1 && forbiddenPaths[0] == "") && forbiddenPaths.Any(s => path.Trim().Contains(s)))
                     {
-                        botController.SendMessage("Your parameter contains forbidden characters");
+                        GetTelegramBotControllerInstance().SendMessage("Your parameter contains forbidden characters");
                         return;
                     }
                     if (!System.IO.File.Exists(path))
                     {
-                        BotController.GetInstance(Username, BotId, MainWindow).SendMessage($"No document found at '{path}'");
+                        GetTelegramBotControllerInstance().SendMessage($"No document found at '{path}'");
                     }
                     else
                     {
@@ -183,7 +228,7 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
                             fts.Filename = path.Split('\\').Last();
                             try
                             {
-                                await BotController.GetInstance(Username, BotId, MainWindow).Bot.SendDocumentAsync(BotController.GetInstance(Username, BotId, MainWindow).LastReceivedChatId, fts);
+                                await GetTelegramBotControllerInstance().Bot.SendDocumentAsync(GetTelegramBotControllerInstance().LastReceivedChatId, fts);
                             }
                             catch (Exception e)
                             {
@@ -194,16 +239,73 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 
                     break;
                 #endregion
+
                 default:
-                    BotController.GetInstance(Username, BotId, MainWindow).SendMessage($"Command {command} cound not be interpreted");
+                    GetTelegramBotControllerInstance().SendMessage($"Command {command} cound not be interpreted.");
                     break;
             }
         }
 
+        /// <summary>
+        /// Sends a message to the user
+        /// </summary>
+        /// <param name="text"></param>
         public void SendMessage(string text)
         {
-            BotController.GetInstance(Username, BotId, MainWindow).SendMessage(text);
+            GetTelegramBotControllerInstance().SendMessage(text);
         }
+
+        #region Append<definition>Line
+
+        /// <summary>
+        /// Appends a line to the Outputtextbox in gray color.
+        /// </summary>
+        /// <param name="text">Line to be appended</param>
+        public void AppendAsyncInfoLine(String text)
+        {
+            MainWindow.AppendResultLine(text, BrushInfo, TextAlignment.Center);
+        }
+
+        /// <summary>
+        /// Appends a line to the Outputtextbox in blue color.
+        /// </summary>
+        /// <param name="text">Line to be appended</param>
+        public void AppendAsyncResultLine(String text)
+        {
+            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushResponse, TextAlignment.Right);
+        }
+
+        /// <summary>
+        /// Appends a line to the Outputtextbox in green color.
+        /// </summary>
+        /// <param name="text">Line to be appended</param>
+        public void AppendAsyncRequestLine(String text)
+        {
+            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushRequest, TextAlignment.Left);
+        }
+
+        /// <summary>
+        /// Appends a line to the Outputtextbox in orange color.
+        /// </summary>
+        /// <param name="text">Line to be appended</param>
+        public void AppendAsyncWarningLine(String text)
+        {
+            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), text, BrushWarning, TextAlignment.Right);
+        }
+
+        /// <summary>
+        /// Appends a line to the Outputtextbox in red color.
+        /// </summary>
+        /// <param name="text">Line to be appended</param>
+        public void AppendAsyncErrorLine(String text)
+        {
+            OutputTextbox.Dispatcher.Invoke(new AppendLineCallback(MainWindow.AppendResultLine), $"{text}\r\nAll Controller will be reset.", BrushError, TextAlignment.Right);
+            ResetController();
+        }
+        #endregion
+        #endregion
+
+        #endregion
 
     }
 }

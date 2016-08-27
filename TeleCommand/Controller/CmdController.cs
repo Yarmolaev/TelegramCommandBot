@@ -10,10 +10,21 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 {
     class CmdController
     {
+        #region Definitions
+        #region Fields
         Process Process;
         StreamWriter StreamWriter;
-        private static CmdController Controller;
 
+        #endregion
+        #region Instance
+        private static CmdController Controller;
+        #endregion
+        #endregion
+
+        #region Functions
+        /// <summary>
+        /// Constructor for CmdController
+        /// </summary>
         private CmdController()
         {
             if (Process == null)
@@ -50,6 +61,10 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
             }
         }
 
+        /// <summary>
+        /// Gets the instance of CmdController
+        /// </summary>
+        /// <returns></returns>
         public static CmdController GetInstance()
         {
             if (Controller == null || Controller.Process.HasExited)
@@ -57,36 +72,43 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
             return Controller;
         }
 
+        /// <summary>
+        /// Resets the cmd controller
+        /// </summary>
+        public static void ResetController()
+        {
+            Controller = null;
+        }
+
+        /// <summary>
+        /// Stops cmd reading
+        /// </summary>
         public void CmdStop()
         {
             Process.WaitForExit(2000);
         }
 
+        /// <summary>
+        /// Runs a cmd command
+        /// </summary>
+        /// <param name="command"></param>
         public void RunCommand(string command)
         {
             StreamWriter.WriteLine(command);
         }
 
-        private void Test(object sender, DataReceivedEventArgs e)
-        {
-            Console.WriteLine(e.Data);
-        }
-
-        public delegate void AppendTextCallback(string text);
-
+        /// <summary>
+        /// Sends the Output to Output Textbox
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void ProcessOutputHandler(object sender, DataReceivedEventArgs e)
         {
             if (e.Data == null)
                 return;
-            Console.WriteLine(e.Data);
-            if (e.Data.Contains("ÿ"))
-                Console.WriteLine("t");
             BasicController.GetInstance(null, null, null).SendMessage(e.Data);
         }
 
-        private void AppendText(string text)
-        {
-            Console.WriteLine(text);
-        }
+        #endregion
     }
 }

@@ -10,11 +10,6 @@ namespace de.yarmolaev.TelegramCommandBot
     /// </summary>
     public partial class MainWindow : Window
     {
-
-
-
-        //private readonly static int apiId = 88462;
-        //private readonly static string apiHash = "e28d2b32dec3f3246894e87eb4b858c3";
         public MainWindow()
         {
             InitializeComponent();
@@ -27,19 +22,7 @@ namespace de.yarmolaev.TelegramCommandBot
         /// <param name="e"></param>
         private void btn_start_Click(object sender, RoutedEventArgs e)
         {
-            //BasicController.GetInstance(this, tb_Username.Text, tb_Bot_ID.Text);
-            //this.BotController = new BotController();
-            //if(this.BotController.StartBot())
-            if (BasicController.GetInstance(this, tb_Username.Text, tb_Bot_ID.Text).StartBot())
-            {
-                StartStopBotUI(true);
-            }
-            /*else
-            {
-                StartStopBotUI(false);
-            }
-
-            Properties.Settings.Default.Save();*/
+            
 
         }
 
@@ -50,22 +33,32 @@ namespace de.yarmolaev.TelegramCommandBot
         /// <param name="e"></param>
         private void btn_stop_Click(object sender, RoutedEventArgs e)
         {
-            if (BasicController.GetInstance(this, tb_Username.Text, tb_Bot_ID.Text).StopBot())
-            {
-                StartStopBotUI(false);
-            }
+            
         }
 
+        /// <summary>
+        /// Fit the UI to current bot state
+        /// </summary>
+        /// <param name="botStarted"></param>
         private void StartStopBotUI(bool botStarted)
         {
-            btn_start.IsEnabled = !botStarted;
-            btn_stop.IsEnabled = botStarted;
+            //btn_start.IsEnabled = !botStarted;
+            //btn_stop.IsEnabled = botStarted;
+            if (botStarted)
+                cmd_start_stop.Content = "Stop";
+            else
+                cmd_start_stop.Content = "Start";
             tb_Bot_ID.IsEnabled = !botStarted;
             tb_Username.IsEnabled = !botStarted;
         }
 
 
-
+        /// <summary>
+        /// Appends given text to Result TextBox
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="color"></param>
+        /// <param name="textAlignment"></param>
         public void AppendResultLine(string text, Brush color, TextAlignment textAlignment)
         {
             Run r = new Run(text);
@@ -75,13 +68,36 @@ namespace de.yarmolaev.TelegramCommandBot
             tb_Output.Document.Blocks.Add(p);
 
             tb_Output.ScrollToEnd();
-
         }
+
 
         private void button_Click(object sender, RoutedEventArgs e)
         {
             SettingsWindow s = new SettingsWindow();
             s.ShowDialog();
+        }
+
+        private void cmd_start_stop_click(object sender, RoutedEventArgs e)
+        {
+            if(cmd_start_stop.Content.Equals("Start"))
+            {
+                if (BasicController.GetInstance(this, tb_Bot_ID.Text, tb_Username.Text).StartBot())
+                {
+                    StartStopBotUI(true);
+                }
+                else
+                {
+                    StartStopBotUI(false);
+                }
+
+                Properties.Settings.Default.Save();
+            }else
+            {
+                if (BasicController.GetInstance(this, tb_Username.Text, tb_Bot_ID.Text).StopBot())
+                {
+                    StartStopBotUI(false);
+                }
+            }
         }
     }
 }

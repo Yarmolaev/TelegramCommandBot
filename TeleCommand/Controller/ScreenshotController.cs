@@ -8,28 +8,33 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
 {
     class ScreenshotController
     {
+        /// <summary>
+        /// Makes a screenshot
+        /// </summary>
+        /// <returns>Path to the made screenshot</returns>
         public static string GetScreenshot()
         {
-                // Determine the size of the "virtual screen", which includes all monitors.
                 int screenLeft = SystemInformation.VirtualScreen.Left;
                 int screenTop = SystemInformation.VirtualScreen.Top;
                 int screenWidth = SystemInformation.VirtualScreen.Width;
                 int screenHeight = SystemInformation.VirtualScreen.Height;
 
-                // Create a bitmap of the appropriate size to receive the screenshot.
                 using (Bitmap bmp = new Bitmap(screenWidth, screenHeight))
                 {
-                    // Draw the screenshot into our bitmap.
                     using (Graphics g = Graphics.FromImage(bmp))
                     {
                         g.CopyFromScreen(screenLeft, screenTop, 0, 0, bmp.Size);
                     }
 
-                // Do something with the Bitmap here, like save it to a file:
                 return SaveImage(bmp);
                 }
         }
 
+        /// <summary>
+        /// Saves a binmap with current timestamp in mydocuments/TCB/<timestamp>.jpg
+        /// </summary>
+        /// <param name="bmp">Bitmap to be saved</param>
+        /// <returns>Path to the saved image</returns>
         private static string SaveImage(Bitmap bmp)
         {
             DateTime now = DateTime.Now;
