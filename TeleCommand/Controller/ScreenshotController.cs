@@ -38,7 +38,7 @@ namespace de.yarmolaev.TelegramCommandBot.Controller
         private static string SaveImage(Bitmap bmp)
         {
             DateTime now = DateTime.Now;
-            string filename = now.ToString("yyyy_MM_dd_HH_mm_ss")+".jpg";
+            string filename = now.ToString("yyyy_MM_dd_HH_mm_ss_fff")+".jpg";
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TCB");
 
             if (!Directory.Exists(path))
